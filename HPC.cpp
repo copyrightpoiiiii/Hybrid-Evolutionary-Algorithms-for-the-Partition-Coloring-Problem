@@ -12,8 +12,8 @@
 #define maxp 2005
 #define maxm 400005
 #define init_size 10
-#define L_LS 500
-#define L_check 500
+#define L_LS 1000
+#define L_check 1000
 #define E  2.7182818285
 #define A 10
 #define arf 0.6
@@ -206,8 +206,6 @@ bool judge(gene p_j) {
         }
         sum+=p_j.v[i].a.size();
     }
-    if(sum!=p)
-    cout<<"jibai"<<endl;
     for (int i = 1; i <= p; i++) {
         for (int j = head[color[i]]; j; j = e[j].next)
             if (rec_point[color[i]] == rec_point[e[j].go])

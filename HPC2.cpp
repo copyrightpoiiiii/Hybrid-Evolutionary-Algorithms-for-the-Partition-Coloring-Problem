@@ -12,8 +12,8 @@
 #define maxp 2005
 #define maxm 400005
 #define init_size 10
-#define L_LS 200
-#define L_check 200
+#define L_LS 1000
+#define L_check 1000
 #define E  2.7182818285
 #define A 10
 #define arf 0.6
@@ -91,17 +91,18 @@ void init_gen(int lim, const int size) {
         for (int j = 1; j <= P[i].size; j++)
             P[i].v[j].a.clear();
     }
-    bool vis[maxn], vispoint[maxn];
+    bool vispoint[maxn];
     gene_size = size;
+    vector<int> book_point;
     for (int i = 1; i <= size; i++) {
-        memset(vis, 0, sizeof(vis));
+        book_point.clear();
+        for (int j = 1; j <= p; j++)
+            book_point.push_back(j);
         P[i].size = 0;
         for (int j = 1; j <= p; j++) {
-            int t = rand() % p + 1;
-            while (vis[t]) {
-                t = rand() % p + 1;
-            }
-            int x=choose_point[t];
+            int t = rand() % book_point.size();
+            int x = choose_point[book_point[t]];
+            book_point.erase(book_point.begin() + t);
             memset(vispoint, 0, sizeof(vispoint));
             for (int k = head[x], y; k; k = e[k].next) {
                 y = e[k].go;
@@ -131,7 +132,6 @@ void init_gen(int lim, const int size) {
                     P[i].v[to_pri].a.push_back(x);
                 }
             }
-            vis[t] = 1;
         }
     }
 }
@@ -224,7 +224,7 @@ void find(gene p) {
             conflict_number[p.v[i].a[j]].color = i;
         }
     for (int i = 1; i <= p2; i++) {
-        int x=choose_point[i];
+        int x = choose_point[i];
         conflict_number[x].sum = 0;
         for (int j = head[x]; j; j = e[j].next) {
             conflict_color[x][color[e[j].go]]++;
@@ -249,7 +249,8 @@ void localSearch(gene &p, int iter) {
             if (conflict_number[choose_point[i]].sum > 0) {
                 for (int j = 1; j <= p.size; j++)
                     if (j != conflict_number[choose_point[i]].color && tabutable[choose_point[i]][j] >= iter) {
-                        if (conflict_number[choose_point[i]].sum - conflict_color[choose_point[i]][j] > conflict_number[rec_id].sum - new_pri_f) {
+                        if (conflict_number[choose_point[i]].sum - conflict_color[choose_point[i]][j] >
+                            conflict_number[rec_id].sum - new_pri_f) {
                             new_pri_f = conflict_color[choose_point[i]][j];
                             new_pri = j;
                             rec_id = choose_point[i];
@@ -331,52 +332,94 @@ void optimize() {
     gene_size--;
 }
 
-int find_change_point(int *a,int x){
-    int max_num=0,fin_point=rand()%n+1;
-    for(int i=1;i<=p;i++){
-        int old_num=0,new_num;
-        for(int j=head[choose_point[i]];j;j=e[j].next)
-            old_num++;
-        for(int j=0;j<con_p[i].size();j++)
-            if(con_p[i][j]!=choose_point[i]&&a[con_p[i][j]] >= x){
-            new_num=0;
-            for(int k=head[con_p[i][j]];k;k=e[k].next)
-                new_num++;
-            if(old_num-new_num>max_num){
-                max_num=old_num-new_num;
-                fin_point=con_p[i][j];
+int find_change_point(int *a, int x) {
+    int max_num = 0, fin_point = rand() % n + 1;
+    for (int i = 1; i <= p; i++) {
+        int new_num = m;
+        for (int j = 0; j < con_p[i].size(); j++)
+            if (con_p[i][j] != choose_point[i] && a[con_p[i][j]] >= x) {
+                new_num = 0;
+                for (int k = head[con_p[i][j]]; k; k = e[k].next)
+                    if (pro[e[k].go] != i)
+                        new_num++;
+                if (new_num < max_num) {
+                    max_num = new_num;
+                    fin_point = con_p[i][j];
+                }
             }
-        }
     }
     return fin_point;
 }
 
-bool check(int x) {
-    memset(point_choose,0, sizeof(point_choose));
-    for(int i=1;i<=p;i++){
-        int min_con=n,min_id=con_p[i][rand()%con_p[i].size()];
-        bool ji_p[maxp];
-        for(int j=0;j<con_p[i].size();j++){
-            memset(ji_p,0, sizeof(ji_p));
-            int cnt=0;
-            for(int k=head[con_p[i][j]];k;k=e[k].next)
-                ji_p[pro[e[k].go]]=1;
-            for(int k=1;k<=p;k++)
-                if(ji_p[k])
-                    cnt++;
-            if(cnt<min_con){
-                min_con=cnt;
-                min_id=con_p[i][j];
+int find_change_point_real(int *a, int x) {
+    int max_num = 0, fin_point = rand() % n + 1;
+    for (int i = 1; i <= p; i++) {
+        int old_num = 0, new_num;
+        for (int j = head[choose_point[i]]; j; j = e[j].next)
+            old_num++;
+        for (int j = 0; j < con_p[i].size(); j++)
+            if (con_p[i][j] != choose_point[i] && a[con_p[i][j]] >= x) {
+                new_num = 0;
+                for (int k = head[con_p[i][j]]; k; k = e[k].next)
+                    if (pro[e[k].go] != i)
+                        new_num++;
+                if (old_num - new_num > max_num) {
+                    max_num = old_num - new_num;
+                    fin_point = con_p[i][j];
+                }
             }
-        }
-        point_choose[min_id]=true;
-        choose_point[i]=min_id;
     }
+    return fin_point;
+}
+
+void choose_all_point(int *a, int mode) {
+    if (mode == 1) {
+        memset(point_choose, 0, sizeof(point_choose));
+        for (int i = 1; i <= p; i++) {
+            int min_con = n, min_id = con_p[i][rand() % con_p[i].size()];
+            for (int j = 0; j < con_p[i].size(); j++) {
+                int cnt = 0;
+                for (int k = head[con_p[i][j]]; k; k = e[k].next)
+                    if (pro[e[k].go] != i)
+                        cnt++;
+                if (cnt < min_con) {
+                    min_con = cnt;
+                    min_id = con_p[i][j];
+                }
+            }
+            point_choose[min_id] = true;
+            a[i] = min_id;
+        }
+    } else {
+        memset(point_choose, 0, sizeof(point_choose));
+        for (int i = 1; i <= p; i++) {
+            int min_con = n, min_id = con_p[i][rand() % con_p[i].size()];
+            for (int j = 0; j < con_p[i].size(); j++) {
+                int cnt = 0;
+                for (int k = head[con_p[i][j]]; k; k = e[k].next)
+                    if (pro[e[k].go] != i)
+                        cnt++;
+                if (abs(cnt - min_con) < (n / 10) || min_con - cnt > (n / 5)) {
+                    min_con = cnt;
+                    min_id = con_p[i][j];
+                }
+            }
+            point_choose[min_id] = true;
+            a[i] = min_id;
+        }
+    }
+}
+
+bool check(int x) {
+    memset(point_choose, 0, sizeof(point_choose));
+    choose_all_point(choose_point, 1);
     //cout<<"sss"<<endl;
-    int stop_check=L_check;
+    int stop_check = L_check;
+    int last_opti = L_check;
     int tabu_table_point[maxn];
-    while(stop_check--) {
-        memset(tabu_table_point, 0x3f, sizeof(tabu_table_point));
+    int best_answer = p * p;
+    memset(tabu_table_point, 0x3f, sizeof(tabu_table_point));
+    while (stop_check--) {
         init_gen(x, init_size);
         int stop_cond = L_check;
         for (int i = 1; i <= init_size; i++)
@@ -384,31 +427,44 @@ bool check(int x) {
                 ans_p = P[i];
                 return 1;
             }
+        int good_answer = p * p;
         while (stop_cond--) {
             int p1 = rand() % init_size + 1, p2 = rand() % init_size + 1;
             gene ps;
             crossover(P[p1], P[p2], ps);
             localSearch(ps, L_LS);
-            cout<<f(ps)<<endl;
+            int tmp = f(ps);
+            good_answer = min(good_answer, tmp);
+            cout << tmp << endl;
+            if (abs(tmp - good_answer) < 50 && tmp > 50 && L_check - stop_cond > 200)
+                break;
             if (judge(ps)) {
                 ans_p = ps;
-                cout<<"I got it!"<<endl;
+                cout << "I got it!" << endl;
                 cout << L_check - stop_cond << endl;
                 return 1;
             }
             P[++gene_size] = ps;
             optimize();
         }
-        cout<<"I will change a point!"<<endl;
-        int change_point=find_change_point(tabu_table_point,stop_check);
-        point_choose[choose_point[pro[change_point]]]= false;
-        point_choose[change_point]= true;
-        choose_point[pro[change_point]]=change_point;
-        int nb_CFL=0;
-        for(int i=head[change_point];i;i=e[i].next)
+        cout << "I will change a point!" << endl;
+        int change_point = find_change_point(tabu_table_point, stop_check);
+        point_choose[choose_point[pro[change_point]]] = false;
+        point_choose[change_point] = true;
+        choose_point[pro[change_point]] = change_point;
+        int nb_CFL = 0;
+        for (int i = head[change_point]; i; i = e[i].next)
             nb_CFL++;
         int tl = rand() % A + arf * nb_CFL;
-        tabu_table_point[change_point]=stop_check-tl;
+        tabu_table_point[change_point] = stop_check - tl;
+        if (abs(best_answer - good_answer) < 50 && best_answer > 50 && last_opti - stop_check > 10) {
+            cout << "huge change!" << endl;
+            memset(point_choose, 0, sizeof(point_choose));
+            choose_all_point(choose_point, 2);
+            memset(tabu_table_point, 0x3f, sizeof(tabu_table_point));
+            last_opti = stop_check;
+        }
+        best_answer = min(best_answer, good_answer);
     }
     return 0;
 }
@@ -430,12 +486,12 @@ int main() {
     init();
     //int l = 1, r = p;
     //while (l <= r) {
-      //  int mid = (l + r) >> 1;
-        //color_size = mid;
-        //cout << mid << endl;
-        check(48);
-        //if (check(mid))r = mid - 1;
-        //else l = mid + 1;
+    //  int mid = (l + r) >> 1;
+    //color_size = mid;
+    //cout << mid << endl;
+    check(50);
+    //if (check(mid))r = mid - 1;
+    //else l = mid + 1;
     //}
     if (judge(ans_p))
         output_gene(ans_p);
